@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pink Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fdf0f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .calc {
+      background: #fbeaf0;
+      border: 1px solid #f4c0d1;
+      border-radius: 20px;
+      padding: 20px;
+      width: 280px;
+    }
+    .display {
+      background: #4b1528;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      text-align: right;
+      min-height: 76px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .display-expr {
+      font-size: 13px;
+      color: #ed93b1;
+      min-height: 18px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.02em;
+    }
+    .display-val {
+      font-size: 32px;
+      font-weight: 500;
+      color: #fbeaf0;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 500;
+      height: 58px;
+      cursor: pointer;
+      transition: transform 0.08s, filter 0.08s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    button:active { transform: scale(0.93); filter: brightness(0.92); }
+    .btn-op    { background: #d4537e; color: #fbeaf0; }
+    .btn-num   { background: #f4c0d1; color: #4b1528; }
+    .btn-clear { background: #993556; color: #fbeaf0; }
+    .btn-eq    { background: #72243e; color: #fbeaf0; }
+    .btn-fn    { background: #ed93b1; color: #4b1528; }
+    .btn-zero  { grid-column: span 2; }
+  </style>
+</head>
+<body>
+  <div class="calc">
+    <div class="display">
+      <div class="display-expr" id="expr"></div>
+      <div class="display-val" id="display">0</div>
+    </div>
+    <div class="btn-grid">
+      <button class="btn-clear" onclick="calc('AC')">AC</button>
+      <button class="btn-fn"    onclick="calc('+/-')">+/-</button>
+      <button class="btn-fn"    onclick="calc('%')">%</button>
+      <button class="btn-op"    onclick="calc('/')">÷</button>
+
+      <button class="btn-num"   onclick="calc('7')">7</button>
+      <button class="btn-num"   onclick="calc('8')">8</button>
+      <button class="btn-num"   onclick="calc('9')">9</button>
+      <button class="btn-op"    onclick="calc('*')">×</button>
+
+      <button class="btn-num"   onclick="calc('4')">4</button>
+      <button class="btn-num"   onclick="calc('5')">5</button>
+      <button class="btn-num"   onclick="calc('6')">6</button>
+      <button class="btn-op"    onclick="calc('-')">−</button>
+
+      <button class="btn-num"   onclick="calc('1')">1</button>
+      <button class="btn-num"   onclick="calc('2')">2</button>
+      <button class="btn-num"   onclick="calc('3')">3</button>
+      <button class="btn-op"    onclick="calc('+')">+</button>
+
+      <button class="btn-num btn-zero" onclick="calc('0')">0</button>
+      <button class="btn-num"   onclick="calc('.')">.</button>
+      <button class="btn-eq"    onclick="calc('=')">=</button>
+    </div>
+  </div>
+
+  <script>
+    let cur = '0', prev = '', op = null, reset = false, expr = '';
+    const disp = document.getElementById('display');
+    const exprEl = document.getElementById('expr');
+
+    function fmt(n) {
+      let s = parseFloat(n.toPrecision(10)).toString();
+      return s.length > 12 ? parseFloat(n.toPrecision(6)).toString() : s;
+    }
+
+    function calc(k) {
+      if (k === 'AC') {
+        cur = '0'; prev = ''; op = null; reset = false; expr = '';
+      } else if (k === '+/-') {
+        cur = cur.startsWith('-') ? cur.slice(1) : '-' + cur;
+      } else if (k === '%') {
+        cur = fmt(parseFloat(cur) / 100);
+      } else if (['+', '-', '*', '/'].includes(k)) {
+        if (op && !reset) {
+          let r = operate(parseFloat(prev), parseFloat(cur), op);
+          cur = fmt(r); prev = cur;
+        } else { prev = cur; }
+        op = k; reset = true;
+        const sym = k === '*' ? '×' : k === '/' ? '÷' : k === '-' ? '−' : k;
+        expr = prev + ' ' + sym;
+      } else if (k === '=') {
+        if (!op) return;
+        let r = operate(parseFloat(prev), parseFloat(cur), op);
+        const sym = op === '*' ? '×' : op === '/' ? '÷' : op === '-' ? '−' : op;
+        expr = prev + ' ' + sym + ' ' + cur + ' =';
+        cur = fmt(r); op = null; prev = ''; reset = true;
+      } else if (k === '.') {
+        if (reset) { cur = '0.'; reset = false; }
+        else if (!cur.includes('.')) cur += '.';
+      } else {
+        if (reset || cur === '0') { cur = k; reset = false; }
+        else cur += k;
+        if (cur.length > 12) cur = cur.slice(0, 12);
+      }
+      disp.textContent = cur;
+      exprEl.textContent = (['+', '-', '*', '/'].includes(op) && !reset)
+        ? expr : (k === '=' ? expr : (op ? expr : ''));
+    }
+
+    function operate(a, b, o) {
+      if (o === '+') return a + b;
+      if (o === '-') return a - b;
+      if (o === '*') return a * b;
+      if (o === '/') return b === 0 ? NaN : a / b;
+    }
+  </script>
+</body>
+</html>
